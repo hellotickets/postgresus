@@ -1,11 +1,11 @@
 import { CopyOutlined, ExclamationCircleOutlined, SyncOutlined } from '@ant-design/icons';
 import { CheckCircleOutlined } from '@ant-design/icons';
-import { App, Button, Modal, Spin, Tooltip } from 'antd';
+import { App, Button, Modal, Select, Spin, Tooltip } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 
 import type { Backup } from '../../../entity/backups';
-import { type Database, DatabaseType, type PostgresqlDatabase } from '../../../entity/databases';
+import { type Database, DatabaseType, type PostgresqlDatabase, databaseApi } from '../../../entity/databases';
 import { type Restore, RestoreStatus, restoreApi } from '../../../entity/restores';
 import { getUserTimeFormat } from '../../../shared/time';
 import { EditDatabaseSpecificDataComponent } from '../../databases/ui/edit/EditDatabaseSpecificDataComponent';
@@ -37,6 +37,11 @@ export const RestoresComponent = ({ database, backup }: Props) => {
   const [showingRestoreError, setShowingRestoreError] = useState<Restore | undefined>();
 
   const [isShowRestore, setIsShowRestore] = useState(false);
+
+  // Database selection for auto-fill
+  const [availableDatabases, setAvailableDatabases] = useState<Database[]>([]);
+  const [selectedDatabaseId, setSelectedDatabaseId] = useState<string | undefined>(undefined);
+  const [isLoadingDatabases, setIsLoadingDatabases] = useState(false);
 
   const isReloadInProgress = useRef(false);
 
@@ -71,6 +76,54 @@ export const RestoresComponent = ({ database, backup }: Props) => {
     }
   };
 
+  const loadDatabases = async () => {
+    if (!database.workspaceId) return;
+
+    setIsLoadingDatabases(true);
+    try {
+      const databases = await databaseApi.getDatabases(database.workspaceId);
+      setAvailableDatabases(databases);
+    } catch (e) {
+      message.error('Failed to load databases');
+    }
+    setIsLoadingDatabases(false);
+  };
+
+  const resetForm = () => {
+    setEditingDatabase({
+      ...database,
+      postgresql: database.postgresql
+        ? ({
+          ...database.postgresql,
+          username: undefined,
+          host: undefined,
+          port: undefined,
+          password: undefined,
+        } as unknown as PostgresqlDatabase)
+        : undefined,
+    });
+  };
+
+  const handleDatabaseSelection = (databaseId: string | undefined) => {
+    setSelectedDatabaseId(databaseId);
+
+    if (!databaseId) {
+      resetForm();
+      return;
+    }
+
+    const selectedDb = availableDatabases.find((db) => db.id === databaseId);
+    if (selectedDb && selectedDb.postgresql) {
+      setEditingDatabase({
+        ...database,
+        postgresql: {
+          ...selectedDb.postgresql,
+          password: '',
+        } as PostgresqlDatabase,
+      });
+    }
+  };
+
   useEffect(() => {
     setIsLoading(true);
     loadRestores().finally(() => setIsLoading(false));
@@ -81,6 +134,14 @@ export const RestoresComponent = ({ database, backup }: Props) => {
 
     return () => clearInterval(interval);
   }, [backup.id]);
+
+  useEffect(() => {
+    if (isShowRestore) {
+      loadDatabases();
+      setSelectedDatabaseId(undefined);
+      resetForm();
+    }
+  }, [isShowRestore]);
 
   const isRestoreInProgress = restores.some(
     (restore) => restore.status === RestoreStatus.IN_PROGRESS,
@@ -98,6 +159,39 @@ export const RestoresComponent = ({ database, backup }: Props) => {
             <br />
             Make sure the database is not used right now (most likely you do not want to restore the
             data to the same DB where the backup was made)
+          </div>
+
+          <div className="mb-4">
+            <div className="mb-2 text-sm text-gray-600 dark:text-gray-400">
+              Select database to auto-fill connection details or enter manually:
+            </div>
+            <Select
+              value={selectedDatabaseId}
+              onChange={handleDatabaseSelection}
+              placeholder="Select a database or enter manually"
+              className="w-full"
+              loading={isLoadingDatabases}
+              allowClear
+              onClear={() => handleDatabaseSelection(undefined)}
+            >
+              {availableDatabases.map((db) => (
+                <Select.Option key={db.id} value={db.id}>
+                  <div className="flex items-center justify-between">
+                    <span>{db.name}</span>
+                    {db.postgresql?.host && (
+                      <span className="ml-2 text-xs text-gray-400">
+                        {db.postgresql.host}:{db.postgresql.port}
+                      </span>
+                    )}
+                  </div>
+                </Select.Option>
+              ))}
+            </Select>
+            {selectedDatabaseId && (
+              <div className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                Password is not auto-filled for security reasons. Please enter it manually.
+              </div>
+            )}
           </div>
 
           <EditDatabaseSpecificDataComponent
