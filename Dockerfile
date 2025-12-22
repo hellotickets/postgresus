@@ -84,6 +84,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   postgresql-client-16 postgresql-client-17 postgresql-client-18 && \
   rm -rf /var/lib/apt/lists/*
 
+RUN mkdir -p /postgresus-data
+
 WORKDIR /app
 
 # Copy Goose from build stage
@@ -99,6 +101,8 @@ COPY backend/migrations ./migrations
 COPY --from=backend-build /app/ui/build ./ui/build
 
 EXPOSE 4005
+
+VOLUME ["/postgresus-data"]
 
 ENTRYPOINT ["/app/main"]
 CMD []
