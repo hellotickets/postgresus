@@ -13,6 +13,7 @@ import { getUserShortTimeFormat } from '../../../shared/time/getUserTimeFormat';
 
 interface Props {
   database: Database;
+  onHealthcheckEnabledChange?: (enabled: boolean) => void;
 }
 
 let lastLoadTime = 0;
@@ -39,7 +40,7 @@ const getAfterDateByPeriod = (period: 'today' | '7d' | '30d' | 'all'): Date => {
   return afterDate;
 };
 
-export const HealthckeckAttemptsComponent = ({ database }: Props) => {
+export const HealthckeckAttemptsComponent = ({ database, onHealthcheckEnabledChange }: Props) => {
   const [isHealthcheckConfigLoading, setIsHealthcheckConfigLoading] = useState(false);
   const [isShowHealthcheckConfig, setIsShowHealthcheckConfig] = useState(false);
 
@@ -86,6 +87,7 @@ export const HealthckeckAttemptsComponent = ({ database }: Props) => {
       if (isCancelled) return;
 
       setIsHealthcheckConfigLoading(false);
+      onHealthcheckEnabledChange?.(healthcheckConfig.isHealthcheckEnabled);
 
       if (healthcheckConfig.isHealthcheckEnabled) {
         setIsShowHealthcheckConfig(true);

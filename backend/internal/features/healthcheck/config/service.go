@@ -134,7 +134,7 @@ func (s *HealthcheckConfigService) initializeDefaultConfig(
 ) error {
 	return s.healthcheckConfigRepository.Save(&HealthcheckConfig{
 		DatabaseID:                        databaseID,
-		IsHealthcheckEnabled:              true,
+		IsHealthcheckEnabled:              false,
 		IsSentNotificationWhenUnavailable: true,
 		IntervalMinutes:                   1,
 		AttemptsBeforeConcideredAsDown:    3,

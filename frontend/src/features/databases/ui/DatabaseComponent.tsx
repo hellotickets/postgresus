@@ -26,6 +26,7 @@ export const DatabaseComponent = ({
 
   const [database, setDatabase] = useState<Database | undefined>();
   const [editDatabase, setEditDatabase] = useState<Database | undefined>();
+  const [isHealthcheckEnabled, setIsHealthcheckEnabled] = useState<boolean | null>(null);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -78,11 +79,15 @@ export const DatabaseComponent = ({
       )}
       {currentTab === 'backups' && (
         <>
-          <HealthckeckAttemptsComponent database={database} />
+          <HealthckeckAttemptsComponent
+            database={database}
+            onHealthcheckEnabledChange={setIsHealthcheckEnabled}
+          />
           <BackupsComponent
             database={database}
             isCanManageDBs={isCanManageDBs}
             scrollContainerRef={scrollContainerRef}
+            isHealthcheckEnabled={isHealthcheckEnabled}
           />
         </>
       )}

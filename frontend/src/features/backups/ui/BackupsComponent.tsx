@@ -33,9 +33,15 @@ interface Props {
   database: Database;
   isCanManageDBs: boolean;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
+  isHealthcheckEnabled?: boolean | null;
 }
 
-export const BackupsComponent = ({ database, isCanManageDBs, scrollContainerRef }: Props) => {
+export const BackupsComponent = ({
+  database,
+  isCanManageDBs,
+  scrollContainerRef,
+  isHealthcheckEnabled,
+}: Props) => {
   const [isBackupsLoading, setIsBackupsLoading] = useState(false);
   const [backups, setBackups] = useState<Backup[]>([]);
 
@@ -523,8 +529,12 @@ export const BackupsComponent = ({ database, isCanManageDBs, scrollContainerRef 
     );
   }
 
+  const containerClassName = isHealthcheckEnabled
+    ? 'mt-5 w-full rounded-md bg-white p-3 shadow md:p-5 dark:bg-gray-800'
+    : 'w-full rounded-tr-md rounded-br-md rounded-bl-md bg-white p-3 shadow sm:p-5 dark:bg-gray-800';
+
   return (
-    <div className="mt-5 w-full rounded-md bg-white p-3 shadow md:p-5 dark:bg-gray-800">
+    <div className={containerClassName}>
       <h2 className="text-lg font-bold md:text-xl dark:text-white">Backups</h2>
 
       {!isBackupConfigLoading && !backupConfig?.isBackupsEnabled && (

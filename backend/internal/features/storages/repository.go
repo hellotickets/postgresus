@@ -38,17 +38,21 @@ func (r *StorageRepository) Save(storage *Storage) (*Storage, error) {
 			if storage.FTPStorage != nil {
 				storage.FTPStorage.StorageID = storage.ID
 			}
+		case StorageTypeMulti:
+			if storage.MultiStorage != nil {
+				storage.MultiStorage.StorageID = storage.ID
+			}
 		}
 
 		if storage.ID == uuid.Nil {
 			if err := tx.Create(storage).
-				Omit("LocalStorage", "S3Storage", "GoogleDriveStorage", "NASStorage", "AzureBlobStorage", "FTPStorage").
+				Omit("LocalStorage", "S3Storage", "GoogleDriveStorage", "NASStorage", "AzureBlobStorage", "FTPStorage", "MultiStorage").
 				Error; err != nil {
 				return err
 			}
 		} else {
 			if err := tx.Save(storage).
-				Omit("LocalStorage", "S3Storage", "GoogleDriveStorage", "NASStorage", "AzureBlobStorage", "FTPStorage").
+				Omit("LocalStorage", "S3Storage", "GoogleDriveStorage", "NASStorage", "AzureBlobStorage", "FTPStorage", "MultiStorage").
 				Error; err != nil {
 				return err
 			}
@@ -97,6 +101,13 @@ func (r *StorageRepository) Save(storage *Storage) (*Storage, error) {
 					return err
 				}
 			}
+		case StorageTypeMulti:
+			if storage.MultiStorage != nil {
+				storage.MultiStorage.StorageID = storage.ID // Ensure ID is set
+				if err := tx.Save(storage.MultiStorage).Error; err != nil {
+					return err
+				}
+			}
 		}
 
 		return nil
@@ -120,6 +131,7 @@ func (r *StorageRepository) FindByID(id uuid.UUID) (*Storage, error) {
 		Preload("NASStorage").
 		Preload("AzureBlobStorage").
 		Preload("FTPStorage").
+		Preload("MultiStorage").
 		Where("id = ?", id).
 		First(&s).Error; err != nil {
 		return nil, err
@@ -139,6 +151,7 @@ func (r *StorageRepository) FindByWorkspaceID(workspaceID uuid.UUID) ([]*Storage
 		Preload("NASStorage").
 		Preload("AzureBlobStorage").
 		Preload("FTPStorage").
+		Preload("MultiStorage").
 		Where("workspace_id = ?", workspaceID).
 		Order("name ASC").
 		Find(&storages).Error; err != nil {
@@ -185,6 +198,12 @@ func (r *StorageRepository) Delete(s *Storage) error {
 		case StorageTypeFTP:
 			if s.FTPStorage != nil {
 				if err := tx.Delete(s.FTPStorage).Error; err != nil {
+					return err
+				}
+			}
+		case StorageTypeMulti:
+			if s.MultiStorage != nil {
+				if err := tx.Delete(s.MultiStorage).Error; err != nil {
 					return err
 				}
 			}

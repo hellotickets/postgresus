@@ -54,6 +54,10 @@ func (s *StorageService) SaveStorage(
 			return err
 		}
 
+		if err := s.ValidateMultiStorageReferences(existingStorage); err != nil {
+			return err
+		}
+
 		_, err = s.storageRepository.Save(existingStorage)
 		if err != nil {
 			return err
@@ -72,6 +76,10 @@ func (s *StorageService) SaveStorage(
 		}
 
 		if err := storage.Validate(s.fieldEncryptor); err != nil {
+			return err
+		}
+
+		if err := s.ValidateMultiStorageReferences(storage); err != nil {
 			return err
 		}
 
@@ -184,6 +192,10 @@ func (s *StorageService) TestStorageConnection(
 		return errors.New("insufficient permissions to test storage in this workspace")
 	}
 
+	if err := s.initializeMultiStorage(storage); err != nil {
+		return err
+	}
+
 	err = storage.TestConnection(s.fieldEncryptor)
 	if err != nil {
 		lastSaveError := err.Error()
@@ -226,13 +238,26 @@ func (s *StorageService) TestStorageConnectionDirect(
 		usingStorage = storage
 	}
 
+	if err := s.initializeMultiStorage(usingStorage); err != nil {
+		return err
+	}
+
 	return usingStorage.TestConnection(s.fieldEncryptor)
 }
 
 func (s *StorageService) GetStorageByID(
 	id uuid.UUID,
 ) (*Storage, error) {
-	return s.storageRepository.FindByID(id)
+	storage, err := s.storageRepository.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.initializeMultiStorage(storage); err != nil {
+		return nil, err
+	}
+
+	return storage, nil
 }
 
 func (s *StorageService) OnBeforeWorkspaceDeletion(workspaceID uuid.UUID) error {
@@ -245,6 +270,60 @@ func (s *StorageService) OnBeforeWorkspaceDeletion(workspaceID uuid.UUID) error 
 		if err := s.storageRepository.Delete(storage); err != nil {
 			return fmt.Errorf("failed to delete storage %s: %w", storage.ID, err)
 		}
+	}
+
+	return nil
+}
+
+func (s *StorageService) initializeMultiStorage(storage *Storage) error {
+	if storage.Type != StorageTypeMulti || storage.MultiStorage == nil {
+		return nil
+	}
+
+	if storage.MultiStorage.PrimaryID == uuid.Nil || storage.MultiStorage.SecondaryID == uuid.Nil {
+		return errors.New("primary and secondary storage IDs are required")
+	}
+
+	primary, err := s.storageRepository.FindByID(storage.MultiStorage.PrimaryID)
+	if err != nil {
+		return fmt.Errorf("failed to load primary storage: %w", err)
+	}
+
+	secondary, err := s.storageRepository.FindByID(storage.MultiStorage.SecondaryID)
+	if err != nil {
+		return fmt.Errorf("failed to load secondary storage: %w", err)
+	}
+
+	storage.MultiStorage.SetStorages(primary, secondary)
+	return nil
+}
+
+func (s *StorageService) ValidateMultiStorageReferences(storage *Storage) error {
+	if storage.Type != StorageTypeMulti || storage.MultiStorage == nil {
+		return nil
+	}
+
+	primary, err := s.storageRepository.FindByID(storage.MultiStorage.PrimaryID)
+	if err != nil {
+		return fmt.Errorf("primary storage not found: %w", err)
+	}
+	if primary.Type == StorageTypeMulti {
+		return errors.New("primary storage cannot be a multi-storage")
+	}
+
+	secondary, err := s.storageRepository.FindByID(storage.MultiStorage.SecondaryID)
+	if err != nil {
+		return fmt.Errorf("secondary storage not found: %w", err)
+	}
+	if secondary.Type == StorageTypeMulti {
+		return errors.New("secondary storage cannot be a multi-storage")
+	}
+
+	if primary.WorkspaceID != storage.WorkspaceID {
+		return errors.New("primary storage must belong to the same workspace")
+	}
+	if secondary.WorkspaceID != storage.WorkspaceID {
+		return errors.New("secondary storage must belong to the same workspace")
 	}
 
 	return nil

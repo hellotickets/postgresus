@@ -1,0 +1,18 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- First storage box (behind) -->
+  <rect x="80" y="80" width="280" height="280" rx="20" fill="#787878"/>
+  <rect x="100" y="100" width="240" height="240" rx="15" fill="#5D5E5E"/>
+  <circle cx="220" cy="220" r="60" fill="#F6F5F5"/>
+  <circle cx="220" cy="220" r="30" fill="#CCCCCC"/>
+
+  <!-- Second storage box (front) -->
+  <rect x="152" y="152" width="280" height="280" rx="20" fill="#4A90D9"/>
+  <rect x="172" y="172" width="240" height="240" rx="15" fill="#357ABD"/>
+  <circle cx="292" cy="292" r="60" fill="#F6F5F5"/>
+  <circle cx="292" cy="292" r="30" fill="#CCCCCC"/>
+
+  <!-- Connection line -->
+  <path d="M320 160 L160 320" stroke="#E95D7A" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="320" cy="160" r="12" fill="#E95D7A"/>
+  <circle cx="160" cy="320" r="12" fill="#E95D7A"/>
+</svg>

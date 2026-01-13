@@ -14,6 +14,8 @@ export const getStorageNameFromType = (type: StorageType) => {
       return 'Azure Blob Storage';
     case StorageType.FTP:
       return 'FTP';
+    case StorageType.MULTI:
+      return 'Multi Storage';
     default:
       return '';
   }

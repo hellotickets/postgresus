@@ -11,6 +11,7 @@ import { ToastHelper } from '../../../../shared/toast';
 import { EditAzureBlobStorageComponent } from './storages/EditAzureBlobStorageComponent';
 import { EditFTPStorageComponent } from './storages/EditFTPStorageComponent';
 import { EditGoogleDriveStorageComponent } from './storages/EditGoogleDriveStorageComponent';
+import { EditMultiStorageComponent } from './storages/EditMultiStorageComponent';
 import { EditNASStorageComponent } from './storages/EditNASStorageComponent';
 import { EditS3StorageComponent } from './storages/EditS3StorageComponent';
 
@@ -86,8 +87,10 @@ export function EditStorageComponent({
     storage.localStorage = undefined;
     storage.s3Storage = undefined;
     storage.googleDriveStorage = undefined;
+    storage.nasStorage = undefined;
     storage.azureBlobStorage = undefined;
     storage.ftpStorage = undefined;
+    storage.multiStorage = undefined;
 
     if (type === StorageType.LOCAL) {
       storage.localStorage = {};
@@ -143,6 +146,13 @@ export function EditStorageComponent({
         password: '',
         useSsl: false,
         path: '',
+      };
+    }
+
+    if (type === StorageType.MULTI) {
+      storage.multiStorage = {
+        primaryId: '',
+        secondaryId: '',
       };
     }
 
@@ -261,6 +271,10 @@ export function EditStorageComponent({
       );
     }
 
+    if (storage.type === StorageType.MULTI) {
+      return storage.multiStorage?.primaryId && storage.multiStorage?.secondaryId;
+    }
+
     return false;
   };
 
@@ -298,6 +312,7 @@ export function EditStorageComponent({
               { label: 'NAS', value: StorageType.NAS },
               { label: 'Azure Blob Storage', value: StorageType.AZURE_BLOB },
               { label: 'FTP', value: StorageType.FTP },
+              { label: 'Multi Storage', value: StorageType.MULTI },
             ]}
             onChange={(value) => {
               setStorageType(value);
@@ -362,6 +377,17 @@ export function EditStorageComponent({
 
         {storage?.type === StorageType.FTP && (
           <EditFTPStorageComponent
+            storage={storage}
+            setStorage={setStorage}
+            setUnsaved={() => {
+              setIsUnsaved(true);
+              setIsTestConnectionSuccess(false);
+            }}
+          />
+        )}
+
+        {storage?.type === StorageType.MULTI && (
+          <EditMultiStorageComponent
             storage={storage}
             setStorage={setStorage}
             setUnsaved={() => {
